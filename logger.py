@@ -14,8 +14,7 @@ stream_handler = logging.StreamHandler(stream=sys.stdout)
 
 log_file_date  = date.today().strftime("%d_%m_%Y")
 log_filename   = f"{LOGS_DIR}/app_{log_file_date}.log"
-
-file_handler       = logging.FileHandler(filename=log_filename)
+file_handler   = logging.FileHandler(filename=log_filename)
 
 # set formatters
 stream_handler.setFormatter(formatter)
