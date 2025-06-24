@@ -142,15 +142,19 @@ def get_s3_client():
             )
             client = session.client('s3')
             
-            # Test connection
+            # Testing the connection
             try:
-                client.list_buckets()
-                logger.info("AWS S3 connection successful")
+                client.head_bucket(Bucket=AWS_BUCKET)
+                logger.info("AWS S3 connection successful (via head_bucket)")
             except NoCredentialsError:
                 raise Exception("AWS credentials are invalid or not found")
             except ClientError as e:
                 error_code = e.response['Error']['Code']
-                if error_code == 'InvalidAccessKeyId':
+                if error_code in ('403', 'AccessDenied'):
+                    raise Exception("Access denied: check if the bucket exists and you have access")
+                elif error_code == '404':
+                    raise Exception("Bucket does not exist or is not accessible")
+                elif error_code == 'InvalidAccessKeyId':
                     raise Exception("AWS Access Key ID is invalid")
                 elif error_code == 'SignatureDoesNotMatch':
                     raise Exception("AWS Secret Access Key is invalid")
