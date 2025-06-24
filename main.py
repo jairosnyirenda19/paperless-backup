@@ -371,7 +371,7 @@ def main():
         logger.error("="*50)
         logger.error(f"Backup failed: {str(e)}")
         logger.error("="*50)
-        raise
+        # raise
 
 
 if __name__ == "__main__":
