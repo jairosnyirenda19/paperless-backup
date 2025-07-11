@@ -25,3 +25,5 @@ AWS_SECRET_ACCESS_KEY       = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 AWS_REGION                  = os.getenv("AWS_REGION", "eu-central-1")
 AWS_BUCKET                  = os.getenv("AWS_BUCKET", "know-malawi")
 AWS_USE_PATH_STYLE_ENDPOINT = False
+
+STORAGE_PREFIX = os.getenv("STORAGE_PREFIX", "")

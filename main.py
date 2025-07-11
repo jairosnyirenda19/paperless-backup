@@ -13,7 +13,8 @@ from config import (
     DOCS_DIR,
     MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET,
     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET,
-    STORAGE_DRIVER
+    STORAGE_DRIVER,
+    STORAGE_PREFIX
 )
 
 DATE = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -23,7 +24,7 @@ def validate_config():
     logger.info("Validating configuration...")
     
     # Common validations
-    required_vars = ['BACKUP_DIR', 'DB_NAME', 'DB_USER', 'PGPASS_FILE', 'DOCS_DIR', 'STORAGE_DRIVER']
+    required_vars = ['BACKUP_DIR', 'DB_NAME', 'DB_USER', 'PGPASS_FILE', 'DOCS_DIR', 'STORAGE_DRIVER', 'STORAGE_PREFIX']
     for var in required_vars:
         if not globals().get(var):
             raise ValueError(f"Missing required configuration: {var}")
@@ -303,21 +304,24 @@ def object_exists_and_modified(s3, bucket_name, key, path):
 def incremental_upload(local_path, s3_client, bucket_name, s3_prefix="media/"):
     """Upload files incrementally based on modification time."""
     logger.info(f"Starting incremental upload from {local_path}")
-    
+
     if not os.path.exists(local_path):
         logger.warning(f"Local path does not exist: {local_path}")
         return
-    
+
+    # Use STORAGE_PREFIX for all uploads
+    s3_prefix = os.path.join(STORAGE_PREFIX, "media/")
+
     upload_count = 0
     skip_count = 0
     error_count = 0
-    
+
     for root, dirs, files in os.walk(local_path):
         for file in files:
             full_path = os.path.join(root, file)
             relative_path = os.path.relpath(full_path, local_path)
             s3_key = os.path.join(s3_prefix, relative_path).replace("\\", "/")
-            
+
             try:
                 if object_exists_and_modified(s3_client, bucket_name, s3_key, full_path):
                     upload_file(s3_client, bucket_name, s3_key, full_path)
@@ -329,7 +333,7 @@ def incremental_upload(local_path, s3_client, bucket_name, s3_prefix="media/"):
             except Exception as e:
                 logger.error(f"Error uploading {s3_key}: {str(e)}")
                 error_count += 1
-    
+
     logger.info(f"Upload summary - Uploaded: {upload_count}, Skipped: {skip_count}, Errors: {error_count}")
 
 
@@ -359,11 +363,11 @@ def main():
         ensure_bucket_exists(s3, bucket_name)
         
         # Upload database backup
-        db_key = f"db/{os.path.basename(db_gz)}"
+        db_key = os.path.join(STORAGE_PREFIX, "db", os.path.basename(db_gz)).replace("\\", "/")
         logger.info(f"Uploading database backup to {db_key}...")
         upload_file(s3, bucket_name, db_key, db_gz)
         logger.info(f"Database backup uploaded successfully: {db_key}")
-        
+
         # Upload media files
         logger.info("Starting media file upload...")
         incremental_upload(DOCS_DIR, s3, bucket_name)
